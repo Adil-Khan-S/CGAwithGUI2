@@ -7,10 +7,9 @@ import pandas as pd
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-    df = pd.DataFrame({'A': [10, 20], 'B': [30, 40]})
-    new_row = {'A': 50, 'B': 60}
-    df = df.append(new_row, ignore_index=True)
-    print(df)
+    for i in range(1,10,2):
+        print(i)
+        i+=2
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
