@@ -49,10 +49,12 @@ def show1():
     if (muscle4RCmb.get() == "Yes"):
         treatmentR[4] = 1
 
-    readMatFilesOfPatients(treatmentL,treatmentR)
-
-def readMatFilesOfPatients(treatmentL,treatmentR):
-    load_files()
+    if(modelCmb.get() == "Gated 5-BiLSTMs"):
+        readMatFilesOfPatients(treatmentL,treatmentR,"Gated 5-BiLSTMs")
+    elif (modelCmb.get() == "5-BiLSTMs with att mechanism"):
+        readMatFilesOfPatients(treatmentL, treatmentR,"5-BiLSTMs with att mechanism")
+def readMatFilesOfPatients(treatmentL,treatmentR,model):
+    load_files(model)
     pat_name = 1
     pre_treat_df_all_cycles = pd.DataFrame()
     print('Folder Name : ', patFolder)
@@ -154,7 +156,7 @@ def readMatFilesOfPatients(treatmentL,treatmentR):
 
             total_pre_cycles = total_pre_cycles + 1
 
-        print(pre_treat_df_all_cycles)
+        #print(pre_treat_df_all_cycles)
         df_test_data = pre_treat_df_all_cycles
         #print(df_test_data.iloc[0,4:10])
         #break
@@ -248,13 +250,19 @@ def readMatFilesOfPatients(treatmentL,treatmentR):
         plt.plot(merge_st_sw_phase(df_test_data.iloc[i, 4:55], df_test_data.iloc[i+1, 4:55], st_prop, sw_prop),color='green')
     plt.plot([], [], label='Pre CGA', **kwargs)
 
-    for i in range(len(output_stance)):
-        plt.plot(merge_st_sw_phase(output_stance[i, 0], output_swing[i, 0], st_prop, sw_prop),
-                 color='red', linestyle='dashed')
-    plt.plot([], [], label='Predicted Post CGA (mean of all cycles)', **kwargs)
+    #for i in range(len(output_stance)):
+    #    plt.plot(merge_st_sw_phase(output_stance[i, 0], output_swing[i, 0], st_prop, sw_prop), color='red', linestyle='dashed')
+    #plt.plot([], [], label='Predicted Post CGA (mean of all cycles)', **kwargs)
 
-    #plt.plot(merge_st_sw_phase(np.mean(output_stance[:, 0], axis=0), np.mean(output_swing[:, 0], axis=0), st_prop, sw_prop),color='red',label='Predicted Post CGA (mean of all cycles)', linestyle='dashed')
-    plt.ylabel("Knee Flexion (°)")
+    #Left Side
+    plt.plot(merge_st_sw_phase(np.mean(output_stance[::2, 0], axis=0), np.mean(output_swing[::2, 0], axis=0), st_prop, sw_prop),color='red',label='Predicted Post CGA (mean of all cycles)', linestyle='dashed')
+
+    # Right Side
+    plt.plot(merge_st_sw_phase(np.mean(output_stance[1::2, 0], axis=0), np.mean(output_swing[1::2, 0], axis=0), st_prop,
+                               sw_prop), color='red', label='Predicted Post CGA (mean of all cycles)',
+             linestyle='dashed')
+
+    plt.ylabel("Ankle Dorsiflexion (°)")
     plt.xlabel("Cycle Instant (%)")
     plt.legend(loc='best')
     plt.show()
@@ -266,25 +274,43 @@ def readMatFilesOfPatients(treatmentL,treatmentR):
     for i in range(0,len(df_test_data),2):
         plt.plot(merge_st_sw_phase(df_test_data.iloc[i, 55:106], df_test_data.iloc[i+1, 55:106], st_prop, sw_prop),color='green')
     plt.plot([], [], label='Pre CGA', **kwargs)
-    plt.plot(merge_st_sw_phase(np.mean(output_stance[:, 1], axis=0), np.mean(output_swing[:, 1], axis=0), st_prop, sw_prop),color='red',label='Predicted Post CGA (mean of all cycles)', linestyle='dashed')
+
+    # Left Side
+    plt.plot(merge_st_sw_phase(np.mean(output_stance[::2, 1], axis=0), np.mean(output_swing[::2, 1], axis=0), st_prop,
+                               sw_prop), color='red', label='Predicted Post CGA (mean of all cycles)',
+             linestyle='dashed')
+
+    # Right Side
+    plt.plot(merge_st_sw_phase(np.mean(output_stance[1::2, 1], axis=0), np.mean(output_swing[1::2, 1], axis=0), st_prop,
+                               sw_prop), color='red', label='Predicted Post CGA (mean of all cycles)',
+             linestyle='dashed')
+
     plt.ylabel("Knee Flexion (°)")
     plt.xlabel("Cycle Instant (%)")
     plt.legend(loc='best')
     plt.show()
 
 MAIN_PATH = "D:/DataForCGAGUI/"
-def load_files():
+def load_files(model):
     global scaler_stance_pre, scaler_swing_pre, stance_model, swing_model, scaler_stance_post, scaler_swing_post
     scaler_stance_pre = load(MAIN_PATH + 'scaler_stance_pre.bin')
     scaler_swing_pre = load(MAIN_PATH + 'scaler_swing_pre.bin')
     scaler_stance_post = load(MAIN_PATH + 'scaler_stance_post.bin')
     scaler_swing_post = load(MAIN_PATH + 'scaler_swing_post.bin')
 
-    stance_model = torch.load(MAIN_PATH + 'biLSTM_treatment_woMTD_attention.pt',map_location=torch.device('cpu'))
-    stance_model.eval()
-
-    swing_model = torch.load('D:/DataForCGAGUI/swing_biLSTM_treatment_woMTD_attention.pt',map_location=torch.device('cpu'))
-    swing_model.eval()
+    if(model == "Gated 5-BiLSTMs"):
+        stance_model = torch.load(MAIN_PATH + 'biLSTM_treatment_gated_stance.pt',map_location=torch.device('cpu'))
+        stance_model.eval()
+        swing_model = torch.load(MAIN_PATH + 'biLSTM_treatment_gated_swing.pt',
+                                 map_location=torch.device('cpu'))
+        swing_model.eval()
+        print("Gated 5-BiLSTMs")
+    if (model == "5-BiLSTMs with att mechanism"):
+        stance_model = torch.load(MAIN_PATH + 'biLSTM_treatment_woMTD_attention.pt', map_location=torch.device('cpu'))
+        stance_model.eval()
+        swing_model = torch.load(MAIN_PATH + 'swing_biLSTM_treatment_woMTD_attention.pt',map_location=torch.device('cpu'))
+        swing_model.eval()
+        print("5-BiLSTMs with att mechanism")
 
 def create_bi_h(h, gate, batch_size):
     #tmp = torch.Tensor([]).cuda()
@@ -300,6 +326,50 @@ def create_bi_h(h, gate, batch_size):
         tmp = torch.cat((tmp, tmp_.unsqueeze(0)), 0)
 
     return tmp
+
+class biLSTM_treatment_gated(nn.Module):
+
+    def __init__(self, input_size, output_size):
+        super(biLSTM_treatment_gated, self).__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+        self.ls = []
+        for i in range(5):
+            lstm = nn.LSTM(input_size = self.input_size,
+                            hidden_size = self.output_size,
+                            batch_first = True,
+                            bidirectional  = True)
+            #self.ls.append(lstm.cuda())
+            self.ls.append(lstm)
+
+        self.l1 = nn.Linear(len(self.ls) * 51 * 2, 124)
+        self.l2 = nn.Linear(124, 51)
+
+
+    def forward(self, x, gate):
+
+        output = torch.Tensor([])
+        #output = torch.Tensor([]).cuda()
+        batch_size = x.shape[0]
+        g = gate.mT
+        for i in range(len(self.ls)):
+            c0 = torch.zeros(2, batch_size, self.output_size).requires_grad_()
+            h0 = torch.zeros(2, batch_size, self.output_size).requires_grad_()
+            v = self.ls[i]
+            #c0 = torch.zeros(2, batch_size, self.output_size).requires_grad_().cuda()
+            #h0 = torch.zeros(2, batch_size, self.output_size).requires_grad_().cuda()
+            #v = self.ls[i].cuda()
+            v = v(x, (h0, c0))[0]
+            v = g[i][:, None, None] * v
+            output = torch.cat((output, v.unsqueeze(1)), 1).requires_grad_()
+            #output = torch.cat((output, v.unsqueeze(1)), 1).requires_grad_().cuda()
+
+        # output = self.dropout(output)
+
+        output = output.view(batch_size, 2, 510)
+        output = F.relu(self.l1(output))
+        output = self.l2(output)
+        return output
 
 class biLSTM_treatment_woMTD_attention(nn.Module):
 
@@ -486,9 +556,9 @@ muscle4RCmb.place(x=280, y=210)
 modelOptions = ["5-BiLSTMs", "Gated 5-BiLSTMs", "5-BiLSTMs with att mechanism"]
 modelLbt = Label(top, text = "Deep Learning Model")
 modelLbt.place(x=50, y=240)
-muscle4Cmb = ttk.Combobox(top, values = modelOptions)
-muscle4Cmb.set("Select Model")
-muscle4Cmb.place(x=170, y=240)
+modelCmb = ttk.Combobox(top, values = modelOptions, state="readonly")
+modelCmb.set("Select Model")
+modelCmb.place(x=170, y=240)
 
 selectPatientBtn = Button(top, text="Submit", command=show1)
 selectPatientBtn.place(x=50, y=280)
